@@ -1,0 +1,90 @@
+# -*- coding: utf-8 -*-
+#Helena Maria Guedes Martínez
+
+
+import pandas as pd
+from mlxtend.frequent_patterns import apriori
+
+# Define a class Apriori for frequent itemset mining
+class Apriori:
+    # Class variables
+    threshold = 0.5  # minimum support threshold
+    df = None  # input DataFrame
+
+    # Constructor
+    def __init__(self, df, threshold=None, transform_bol=False, transform_stringbol=False):
+        # Validate the input DataFrame
+        self._validate_df(df)
+
+        # Store the input DataFrame
+        self.df = df
+
+        # Set the minimum support threshold
+        if threshold is not None:
+            self.threshold = threshold
+
+        # Transform boolean columns to 0/1 if necessary
+        if transform_bol:
+            self._transform_bol()
+
+        # Transform 'im'/'não' columns to boolean if necessary
+        if transform_stringbol:
+            self._transform_stringbol_to_bol()
+
+    # Validate the input DataFrame
+    def _validate_df(self, df):
+        if df is None:
+            raise Exception("df must be a valid pandas.DataDrame.")
+
+    # Transform 'sim'/'não' columns to boolean
+    def _transform_stringbol_to_bol(self):
+        for column in self.df.columns:
+            self.df[column] = self.df[column].apply(lambda x: True if x == 'im' else False)
+
+    # Transform boolean columns to 0/1
+    def _transform_bol(self):
+        for column in self.df.columns:
+            self.df[column] = self.df[column].apply(lambda x: 1 if x else 0)
+
+    # Run the Apriori algorithm
+    def _apriori(self, use_colnames=False, max_len=None, count=True):
+        apriori_df = apriori(
+            self.df,
+            min_support=self.threshold,
+            use_colnames=use_colnames,
+            max_len=max_len
+        )
+        if count:
+            apriori_df['length'] = apriori_df['itemsets'].apply(lambda x: len(x))
+        return apriori_df
+
+    # Run the Apriori algorithm and return the result
+    def run(self, use_colnames=False, max_len=None, count=True):
+        return self._apriori(
+            use_colnames=use_colnames,
+            max_len=max_len,
+            count=count
+        )
+
+    # Filter the Apriori result by length and support threshold
+    def filter(self, apriori_df, length, threshold):
+        if 'length' not in apriori_df.columns:
+            raise Exception("apriori_df has no length. Please run the Apriori with count=True.")
+        return apriori_df[(apriori_df['length'] == length) & (apriori_df['support'] >= threshold)]
+
+# Example usage
+columns = ['ID', 'LEITE', 'CAFE', 'CERVEJA', 'PAO', 'MANTEIGA', 'ARROZ', 'FEIJAO']
+dataset = [
+    [1, 'NAO', 'SIM', 'NAO', 'SIM', 'SIM', 'NAO', 'NAO'],
+    [2, 'SIM', 'NAO', 'NAO', 'SIM', 'SIM', 'NAO', 'NAO'],
+    [3, 'NAO', 'SIM', 'NAO', 'SIM', 'SIM', 'NAO', 'NAO'],
+    [4, 'SIM', 'NAO', 'NAO', 'SIM', 'NAO', 'SIM', 'NAO'],
+    [5, 'NAO', 'SIM', 'NAO', 'SIM', 'SIM', 'NAO', 'NAO'],
+    [6, 'NAO', 'SIM', 'SIM', 'SIM', 'NAO', 'NAO', 'SIM'],
+    [7, 'SIM', 'NAO', 'NAO', 'NAO', 'NAO', 'SIM', 'SIM'],
+    [8, 'NAO', 'SIM', 'NAO', 'NAO', 'SIM', 'NAO', 'NAO'],
+    [9, 'NAO', 'SIM', 'NAO', 'SIM', 'NAO', 'SIM', 'NAO'],
+    [10, 'NAO', 'NAO', 'NAO', 'NAO', 'SIM', 'SIM', 'NAO']
+]
+
+df = pd.DataFrame(dataset, columns=columns)
